@@ -1,0 +1,9 @@
+Makefile.PL
+MANIFEST
+META.yml
+Changes
+lib/POE/Component/SpreadClient.pm
+lib/POE/Driver/SpreadClient.pm
+lib/POE/Filter/SpreadClient.pm
+examples/simpleClient.pl
+t/Spread.t
