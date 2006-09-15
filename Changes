@@ -1,4 +1,10 @@
 Revision history for Perl extension POE::Component::SpreadClient.
 
+* 0.02
+
+	POD tweaks
+	Updated the _sp_error routine to include $priv_name ( arguments shifted right by 1 )
+	Spread.pm does not like 1-member arrayref ( publish/subscribe/unsubscribe now does array collapsing )
+
 * 0.01
 	first release

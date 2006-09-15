@@ -6,8 +6,8 @@ use strict qw(subs vars refs);				# Make sure we can't mess up
 use warnings FATAL => 'all';				# Enable warnings to catch errors
 
 # Our version stuff
-# $Revision: 1164 $
-our $VERSION = '0.01';
+# $Revision: 1176 $
+our $VERSION = '0.02';
 
 # Load our stuff
 use POE qw( Wheel::ReadWrite );
@@ -118,14 +118,14 @@ sub connect : state {
 	if ( $@ ) {
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-			$_[KERNEL]->post( $l, '_sp_error', 'CONNECT', $@, $server, $priv );
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'CONNECT', $@, $server, $priv );
 		}
 	} else {
 		# Sanity
 		if ( ! defined $mbox ) {
 			# Inform our registered listeners
 			foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-				$_[KERNEL]->post( $l, '_sp_error', 'CONNECT', $sperrno, $server, $priv );
+				$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'CONNECT', $sperrno, $server, $priv );
 			}
 		} else {
 			# Set our data
@@ -200,7 +200,7 @@ sub publish : state {
 	if ( ! defined $_[HEAP]->{'WHEEL'} ) {
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-			$_[KERNEL]->post( $l, '_sp_error', 'PUBLISH', CONNECTION_CLOSED, $groups, $message );
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'PUBLISH', CONNECTION_CLOSED, $groups, $message );
 		}
 
 		# All done!
@@ -210,6 +210,21 @@ sub publish : state {
 	# Sanity
 	if ( ! defined $mess_type ) {
 		$mess_type = 0;
+	}
+
+	# Spread.pm doesn't like one-member group via arrayref...
+	if ( defined $groups ) {
+		if ( ref $groups and ref $groups eq 'ARRAY' and scalar @$groups == 1 ) {
+			$groups = $groups->[0];
+		}
+	} else {
+		# Inform our registered listeners
+		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'PUBLISH', ILLEGAL_GROUP, undef, $message );
+		}
+
+		# All done!
+		return;
 	}
 
 	# Send it!
@@ -225,7 +240,7 @@ sub publish : state {
 
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-			$_[KERNEL]->post( $l, '_sp_error', 'PUBLISH', $sperrno, $groups, $message );
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'PUBLISH', $sperrno, $groups, $message );
 		}
 	}
 
@@ -237,20 +252,35 @@ sub subscribe : state {
 	# The groups to join
 	my $groups = $_[ARG0];
 
+	# Automatically add the sender session to listeners
+	if ( ! exists $_[HEAP]->{'LISTEN'}->{ $_[SENDER]->ID } ) {
+		$_[HEAP]->{'LISTEN'}->{ $_[SENDER]->ID } = 1;
+	}
+
 	# Shortcut
 	if ( ! defined $_[HEAP]->{'WHEEL'} ) {
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-			$_[KERNEL]->post( $l, '_sp_error', 'SUBSCRIBE', CONNECTION_CLOSED, $groups );
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'SUBSCRIBE', CONNECTION_CLOSED, $groups );
 		}
 
 		# All done!
 		return;
 	}
 
-	# Automatically add the sender session to listeners
-	if ( ! exists $_[HEAP]->{'LISTEN'}->{ $_[SENDER]->ID } ) {
-		$_[HEAP]->{'LISTEN'}->{ $_[SENDER]->ID } = 1;
+	# Spread.pm doesn't like one-member group via arrayref...
+	if ( defined $groups ) {
+		if ( ref $groups and ref $groups eq 'ARRAY' and scalar @$groups == 1 ) {
+			$groups = $groups->[0];
+		}
+	} else {
+		# Inform our registered listeners
+		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'SUBSCRIBE', ILLEGAL_GROUP, undef );
+		}
+
+		# All done!
+		return;
 	}
 
 	# Actually join!
@@ -266,7 +296,7 @@ sub subscribe : state {
 
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-			$_[KERNEL]->post( $l, '_sp_error', 'SUBSCRIBE', $sperrno, $groups );
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'SUBSCRIBE', $sperrno, $groups );
 		}
 	}
 
@@ -282,14 +312,29 @@ sub unsubscribe : state {
 	if ( ! defined $_[HEAP]->{'WHEEL'} ) {
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-			$_[KERNEL]->post( $l, '_sp_error', 'UNSUBSCRIBE', CONNECTION_CLOSED, $groups );
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'UNSUBSCRIBE', CONNECTION_CLOSED, $groups );
 		}
 
 		# All done!
 		return;
 	}
 
-	# Actually join!
+	# Spread.pm doesn't like one-member group via arrayref...
+	if ( defined $groups ) {
+		if ( ref $groups and ref $groups eq 'ARRAY' and scalar @$groups == 1 ) {
+			$groups = $groups->[0];
+		}
+	} else {
+		# Inform our registered listeners
+		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'UNSUBSCRIBE', ILLEGAL_GROUP, undef );
+		}
+
+		# All done!
+		return;
+	}
+
+	# Actually leave!
 	my $rtn;
 	eval {
 		$rtn = Spread::leave( $_[HEAP]->{'MBOX'}, $groups );
@@ -302,7 +347,7 @@ sub unsubscribe : state {
 
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-			$_[KERNEL]->post( $l, '_sp_error', 'UNSUBSCRIBE', $sperrno, $groups );
+			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'UNSUBSCRIBE', $sperrno, $groups );
 		}
 	}
 
@@ -458,7 +503,7 @@ Unsubscribes to a Spread messaging group. Does not remove the session from the l
     - The group name(s)
     - Adding the last parameter ( int ) is the Spread mess_type -> application-defined ( default: 0 )
 
-Send a simple message to a Spread group(s).
+Send a simple message to a Spread group(s). This uses the Spread message type 'SAFE_MESS'
 
 =head2 register
 
@@ -491,7 +536,7 @@ Removes the current session from the "registered listeners" list.
 =head2 C<_sp_error>
 
 	sub _sp_error : state {
-		my( $type, $sperrno, $msg, $data ) = @_[ ARG0 .. ARG3 ];
+		my( $priv_name, $type, $sperrno, $msg, $data ) = @_[ ARG0 .. ARG4 ];
 
 		# Handle different kinds of errors
 		if ( $type eq 'CONNECT' ) {
@@ -521,7 +566,7 @@ Removes the current session from the "registered listeners" list.
 		# Could be somebody quit/join or something else?
 	}
 
-=head2 SpreadClient Notes
+=head1 SpreadClient Notes
 
 You can enable debugging mode by doing this:
 
@@ -530,9 +575,9 @@ You can enable debugging mode by doing this:
 
 =head1 BUGS
 
-- Need to expand documentation so the message types in _sp_admin is more understandable
-- Would love to have more message handling - a simple look at the Spread User's Guide shows a lot of message variety!
-- Need to be tested more!
+	- Need to expand documentation so the message types in _sp_admin is more understandable
+	- Would love to have more message handling - a simple look at the Spread User's Guide shows a lot of message variety!
+	- Need to be tested more!
 
 =head1 SEE ALSO
 
