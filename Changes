@@ -1,5 +1,12 @@
 Revision history for Perl extension POE::Component::SpreadClient.
 
+* 0.03
+
+	learned about the difference between ref $self and ref( $self )
+	Squashed a bug where it would send a sp_error then sp_disconnect, should be sp_error only!
+	Added new destroy event
+	POD tweaks
+
 * 0.02
 
 	POD tweaks

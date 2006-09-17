@@ -6,8 +6,8 @@ use strict qw(subs vars refs);				# Make sure we can't mess up
 use warnings FATAL => 'all';				# Enable warnings to catch errors
 
 # Our version stuff
-# $Revision: 1176 $
-our $VERSION = '0.02';
+# $Revision: 1187 $
+our $VERSION = '0.03';
 
 # Load our stuff
 use POE qw( Wheel::ReadWrite );
@@ -120,6 +120,9 @@ sub connect : state {
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'CONNECT', $@, $server, $priv );
 		}
+
+		# We're not connected...
+		$_[HEAP]->{'DISCONNECTED'} = 1;
 	} else {
 		# Sanity
 		if ( ! defined $mbox ) {
@@ -127,7 +130,15 @@ sub connect : state {
 			foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 				$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'CONNECT', $sperrno, $server, $priv );
 			}
+
+			# We're not connected...
+			$_[HEAP]->{'DISCONNECTED'} = 1;
 		} else {
+			# Debugging
+			if ( DEBUG ) {
+				warn "creating RW wheel for Spread";
+			}
+
 			# Set our data
 			$_[HEAP]->{'SERVER'} = $server;
 			$_[HEAP]->{'PRIV_NAME'} = $priv;
@@ -151,6 +162,9 @@ sub connect : state {
 			foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 				$_[KERNEL]->post( $l, '_sp_connect', $priv, $priv_group );
 			}
+
+			# We're connected...
+			delete $_[HEAP]->{'DISCONNECTED'} if exists $_[HEAP]->{'DISCONNECTED'};
 		}
 	}
 
@@ -160,34 +174,46 @@ sub connect : state {
 
 sub disconnect : state {
 	# Sanity
-	if ( ! exists $_[HEAP]->{'DISCONNECTED'} ) {
-		# Sanity
-		if ( exists $_[HEAP]->{'WHEEL'} and defined $_[HEAP]->{'WHEEL'} ) {
-			# Debugging
-			if ( DEBUG ) {
-				warn "SpreadClient is disconnecting!";
-			}
-
-			# Shutdown the input/output
-			$_[HEAP]->{'WHEEL'}->shutdown_input();
-			$_[HEAP]->{'WHEEL'}->shutdown_output();
-
-			# Get rid of it!
-			undef $_[HEAP]->{'WHEEL'};
+	if ( exists $_[HEAP]->{'WHEEL'} and defined $_[HEAP]->{'WHEEL'} ) {
+		# Debugging
+		if ( DEBUG ) {
+			warn "SpreadClient is disconnecting!";
 		}
+
+		# Shutdown the input/output
+		$_[HEAP]->{'WHEEL'}->shutdown_input();
+		$_[HEAP]->{'WHEEL'}->shutdown_output();
+
+		# Get rid of it!
+		undef $_[HEAP]->{'WHEEL'};
+	}
+
+	# Sanity
+	if ( ! exists $_[HEAP]->{'DISCONNECTED'} ) {
+		if ( DEBUG ) {
+			warn "calling sp_disconnect";
+		}
+
+		# Set it in our heap that we've disconnected
+		$_[HEAP]->{'DISCONNECTED'} = 1;
 
 		# Inform our registered listeners
 		# XXX Should I use POST here instead?
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 			$_[KERNEL]->call( $l, '_sp_disconnect', $_[HEAP]->{'PRIV_NAME'} );
 		}
-
-		# Get rid of our alias
-		$_[KERNEL]->alias_remove( $_[HEAP]->{'ALIAS'} );
-
-		# Set it in our heap that we've disconnected
-		$_[HEAP]->{'DISCONNECTED'} = 1;
 	}
+
+	# All done!
+	return;
+}
+
+sub destroy : state {
+	# Okay, destroy ourself!
+	$_[KERNEL]->call( $_[SESSION], 'disconnect' );
+
+	# Get rid of our alias
+	$_[KERNEL]->alias_remove( $_[HEAP]->{'ALIAS'} );
 
 	# All done!
 	return;
@@ -214,7 +240,7 @@ sub publish : state {
 
 	# Spread.pm doesn't like one-member group via arrayref...
 	if ( defined $groups ) {
-		if ( ref $groups and ref $groups eq 'ARRAY' and scalar @$groups == 1 ) {
+		if ( ref $groups and ref( $groups ) eq 'ARRAY' and scalar @$groups == 1 ) {
 			$groups = $groups->[0];
 		}
 	} else {
@@ -270,7 +296,7 @@ sub subscribe : state {
 
 	# Spread.pm doesn't like one-member group via arrayref...
 	if ( defined $groups ) {
-		if ( ref $groups and ref $groups eq 'ARRAY' and scalar @$groups == 1 ) {
+		if ( ref $groups and ref( $groups ) eq 'ARRAY' and scalar @$groups == 1 ) {
 			$groups = $groups->[0];
 		}
 	} else {
@@ -321,7 +347,7 @@ sub unsubscribe : state {
 
 	# Spread.pm doesn't like one-member group via arrayref...
 	if ( defined $groups ) {
-		if ( ref $groups and ref $groups eq 'ARRAY' and scalar @$groups == 1 ) {
+		if ( ref $groups and ref( $groups ) eq 'ARRAY' and scalar @$groups == 1 ) {
 			$groups = $groups->[0];
 		}
 	} else {
@@ -382,7 +408,7 @@ sub RW_Error : state {
 	my ( $operation, $errnum, $errstr, $id ) = @_[ ARG0 .. ARG3 ];
 
 	# Debugging
-	if ( DEBUG and $errnum != 0 ) {
+	if ( DEBUG ) {
 		warn "ReadWrite wheel($id) got error $errnum - $errstr doing $operation";
 	}
 
@@ -425,25 +451,25 @@ POE::Component::SpreadClient - handle Spread communications in POE
 
 =head1 SYNOPSIS
 
-    POE::Component::SpreadClient->spawn( 'spread' );
+	POE::Component::SpreadClient->spawn( 'spread' );
 
-    POE::Session->create(
-        inline_states => {
-            _start => \&_start,
-            _sp_message => \&do_something,
-            _sp_admin => \&do_something,
-            _sp_connect => \&do_something,
-            _sp_disconnect => \&do_something,
-            _sp_error => \&do_something,
-        }
-    );
+	POE::Session->create(
+	    inline_states => {
+	        _start => \&_start,
+	        _sp_message => \&do_something,
+	        _sp_admin => \&do_something,
+	        _sp_connect => \&do_something,
+	        _sp_disconnect => \&do_something,
+	        _sp_error => \&do_something,
+	    }
+	);
 
-    sub _start {
-        $poe_kernel->alias_set('displayer');
-        $poe_kernel->post( spread => connect => 'localhost', $$ );
-        $poe_kernel->post( spread => subscribe => 'chatroom' );
-        $poe_kernel->post( spread => publish => 'chatroom', 'A/S/L?' );
-    }
+	sub _start {
+		$poe_kernel->alias_set('displayer');
+		$poe_kernel->post( spread => connect => 'localhost', $$ );
+		$poe_kernel->post( spread => subscribe => 'chatroom' );
+		$poe_kernel->post( spread => publish => 'chatroom', 'A/S/L?' );
+	}
 
 =head1 DESCRIPTION
 
@@ -453,69 +479,85 @@ POE::Component::SpreadClient is a POE component for talking to Spread servers.
 
 =head2 spawn
 
-    POE::Component::Spread->spawn( 'spread' );
+	POE::Component::Spread->spawn( 'spread' );
 
-    - The alias the component will take ( default: "SpreadClient" )
+	- The alias the component will take ( default: "SpreadClient" )
 
 =head1 Public API
 
 =head2 connect
 
-    $poe_kernel->post( spread => connect => '4444@localhost' );
-    $poe_kernel->post( spread => connect => '4444@localhost', 'logger' );
+	$poe_kernel->post( spread => connect => '4444@localhost' );
+	$poe_kernel->post( spread => connect => '4444@localhost', 'logger' );
 
-    - The Server location
-    - The private name for the Spread connection ( default: "spread-PID" )
+	- The Server location
+	- The private name for the Spread connection ( default: "spread-PID" )
 
-Connect this POE session to the Spread server on port 4444 on localhost.
+	Connect this POE session to the Spread server on port 4444 on localhost.
+
+	Will send a C<_sp_error> event if unable to connect; C<_sp_connect> if successful
 
 =head2 disconnect
 
 	$poe_kernel->post( spread => disconnect );
 
-Forces this session to disconnect and remove it's alias.
+	Forces this session to disconnect. ( DOES NOT REMOVE ALIAS => look at destroy below )
+
+	Will send a C<_sp_disconnect> event if disconnected; C<_sp_error> if failure
 
 =head2 subscribe
 
-    $poe_kernel->post( spread => subscribe => 'chatroom' );
-    $poe_kernel->post( spread => subscribe => [ 'chatroom', 'testing' ] );
+	$poe_kernel->post( spread => subscribe => 'chatroom' );
+	$poe_kernel->post( spread => subscribe => [ 'chatroom', 'testing' ] );
 
-    - The group name(s)
+	- The group name(s)
 
-Subscribe to a Spread messaging group. Messages will be sent to C<_sp_message> and
-C<_sp_admin> events in the registered listeners.
+	Subscribe to a Spread messaging group. Messages will be sent to C<_sp_message> and
+	join/leave/etc to C<_sp_admin> in the registered listeners.
 
-Automatically adds the session to the registered listeners.
+	Automatically adds the session to the registered listeners.
+
+	Will send a C<_sp_error> if unable to subscribe; C<_sp_admin> with join message if successful
 
 =head2 unsubscribe
 
 	$poe_kernel->post( spread => unsubscribe => 'chatroom' );
 	$poe_kernel->post( spread => unsubscribe => [ 'foobar', 'chatroom' ] );
 
-Unsubscribes to a Spread messaging group. Does not remove the session from the listener list.
+	Unsubscribes to a Spread messaging group. Does not remove the session from the listener list.
+
+	Will send a C<_sp_error> if unable to unsubscribe; C<_sp_admin> with self_leave if successful
 
 =head2 publish
 
-    $poe_kernel->post( spread => publish => 'chatroom', 'A/S/L?' );
-    $poe_kernel->post( spread => publish => [ 'chatroom', 'stats' ], 'A/S/L?' );
-    $poe_kernel->post( spread => publish => 'chatroom', 'special', 5 );
+	$poe_kernel->post( spread => publish => 'chatroom', 'A/S/L?' );
+	$poe_kernel->post( spread => publish => [ 'chatroom', 'stats' ], 'A/S/L?' );
+	$poe_kernel->post( spread => publish => 'chatroom', 'special', 5 );
 
-    - The group name(s)
-    - Adding the last parameter ( int ) is the Spread mess_type -> application-defined ( default: 0 )
+	- The group name(s)
+	- Adding the last parameter ( int ) is the Spread mess_type -> application-defined ( default: 0 )
 
-Send a simple message to a Spread group(s). This uses the Spread message type 'SAFE_MESS'
+	Send a simple message to a Spread group(s). This uses the Spread message type 'SAFE_MESS'
+
+	Will send a C<_sp_error> if unable to publish
 
 =head2 register
 
 	$poe_kernel->post( spread => register );
 
-Registers the current session as a "registered listener" and will receive all events.
+	Registers the current session as a "registered listener" and will receive all events.
 
 =head2 unregister
 
 	$poe_kernel->post( spread => unregister );
 
-Removes the current session from the "registered listeners" list.
+	Removes the current session from the "registered listeners" list.
+
+=head2 destroy
+
+	$poe_kernel->post( spread => destroy );
+
+	Destroys the session by removing it's alias and disconnecting if needed with C<_sp_disconnect>
 
 =head1 EVENTS
 
@@ -540,13 +582,13 @@ Removes the current session from the "registered listeners" list.
 
 		# Handle different kinds of errors
 		if ( $type eq 'CONNECT' ) {
-			# $sperrno = error string, $msg = server name, $data = priv name
+			# $sperrno = Spread errno/error string, $msg = server name, $data = priv name
 		} elsif ( $type eq 'PUBLISH' ) {
-			# $sperrno = Spread errno, $msg = $groups, $data = $message
+			# $sperrno = Spread errno, $msg = $groups ( may be undef ), $data = $message ( may be undef )
 		} elsif ( $type eq 'SUBSCRIBE' ) {
-			# $sperrno = Spread errno, $msg = $groups
+			# $sperrno = Spread errno, $msg = $groups ( may be undef )
 		} elsif ( $type eq 'UNSUBSCRIBE' ) {
-			# $sperrno = Spread errno, $msg = $groups
+			# $sperrno = Spread errno, $msg = $groups ( may be undef )
 		}
 	}
 
