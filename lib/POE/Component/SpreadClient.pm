@@ -6,8 +6,8 @@ use strict qw(subs vars refs);				# Make sure we can't mess up
 use warnings FATAL => 'all';				# Enable warnings to catch errors
 
 # Our version stuff
-# $Revision: 1187 $
-our $VERSION = '0.03';
+# $Revision: 1209 $
+our $VERSION = '0.04';
 
 # Load our stuff
 use POE qw( Wheel::ReadWrite );
@@ -220,7 +220,7 @@ sub destroy : state {
 }
 
 sub publish : state {
-	my( $groups, $message, $mess_type ) = @_[ ARG0 .. ARG2 ];
+	my( $groups, $message, $mess_type, $flag ) = @_[ ARG0 .. ARG3 ];
 
 	# Shortcut
 	if ( ! defined $_[HEAP]->{'WHEEL'} ) {
@@ -256,7 +256,12 @@ sub publish : state {
 	# Send it!
 	my $rtn;
 	eval {
-		$rtn = Spread::multicast( $_[HEAP]->{'MBOX'}, SAFE_MESS, $groups, $mess_type, $message );
+		# Should we do special flags?
+		if ( defined $flag ) {
+			$rtn = Spread::multicast( $_[HEAP]->{'MBOX'}, $flag, $groups, $mess_type, $message );
+		} else {
+			$rtn = Spread::multicast( $_[HEAP]->{'MBOX'}, SAFE_MESS, $groups, $mess_type, $message );
+		}
 	};
 	if ( $@ or ! defined $rtn or $rtn < 0 ) {
 		# Check for disconnect
@@ -417,7 +422,7 @@ sub RW_Error : state {
 }
 
 sub RW_GotPacket : state {
-	my( $type, $sender, $groups, $mess, $endian, $message ) = @{ @{ $_[ARG0] }[0] };
+	my( $type, $sender, $groups, $mess_type, $endian, $message ) = @{ @{ $_[ARG0] }[0] };
 
 	# Check for disconnect
 	if ( ! defined $type ) {
@@ -426,14 +431,77 @@ sub RW_GotPacket : state {
 	} else {
 		# Check the type
 		if ( $type & REGULAR_MESS ) {
+			# Do we have an endian problem?
+			if ( defined $endian and $endian ) {
+				# XXX Argh!
+				if ( DEBUG ) {
+					warn "endian mis-match detected!";
+				}
+			}
+
 			# Regular message
 			foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-				$_[KERNEL]->post( $l, '_sp_message', $_[HEAP]->{'PRIV_NAME'}, $type, $sender, $groups, $mess, $message );
+				$_[KERNEL]->post( $l, '_sp_message', $_[HEAP]->{'PRIV_NAME'}, $sender, $groups, $mess_type, $message );
 			}
 		} else {
-			# Admin message
-			foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-				$_[KERNEL]->post( $l, '_sp_admin', $_[HEAP]->{'PRIV_NAME'}, $type, $sender, $groups, $mess, $message );
+			# Okay, figure out the type
+			if ( $type &  TRANSITION_MESS ) {
+				# Transitional Message
+				foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+					$_[KERNEL]->post( $l, '_sp_admin', $_[HEAP]->{'PRIV_NAME'}, { 'TYPE' => 'TRANSITIONAL', 'GROUP' => $sender } );
+				}
+			} elsif ( $type & CAUSED_BY_LEAVE and ! ( $type & REG_MEMB_MESS ) ) {
+				# Self leave
+				foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+					$_[KERNEL]->post( $l, '_sp_admin', $_[HEAP]->{'PRIV_NAME'}, { 'TYPE' => 'SELF_LEAVE', 'GROUP' => $sender } );
+				}
+			} elsif ( $type & REG_MEMB_MESS ) {
+				# Parse the message!
+				my ( $gid1, $gid2, $gid3, $num_memb, $member );
+				eval {
+					( $gid1, $gid2, $gid3, $num_memb, $member ) = unpack( "IIIIa*", $message );
+				};
+				if ( $@ ) {
+					# Inform our registered listeners
+					foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+						$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'RECEIVE', $@ );
+					}
+				} else {
+					# Okay, what was it?
+					if ( $type & CAUSED_BY_JOIN ) {
+						# Inform our registered listeners
+						foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+							$_[KERNEL]->post( $l, '_sp_admin', $_[HEAP]->{'PRIV_NAME'}, { 'TYPE' => 'JOIN', 'GROUP' => $sender, 'MEMBERS' => $groups, 'WHO' => $member, 'GID' => [ $gid1, $gid2, $gid3 ], 'INDEX' => $mess_type } );
+						}
+					} elsif ( $type & CAUSED_BY_LEAVE ) {
+						# Inform our registered listeners
+						foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+							$_[KERNEL]->post( $l, '_sp_admin', $_[HEAP]->{'PRIV_NAME'}, { 'TYPE' => 'LEAVE', 'GROUP' => $sender, 'MEMBERS' => $groups, 'WHO' => $member, 'GID' => [ $gid1, $gid2, $gid3 ], 'INDEX' => $mess_type } );
+						}
+					} elsif ( $type & CAUSED_BY_DISCONNECT ) {
+						# Inform our registered listeners
+						foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+							$_[KERNEL]->post( $l, '_sp_admin', $_[HEAP]->{'PRIV_NAME'}, { 'TYPE' => 'DISCONNECT', 'GROUP' => $sender, 'MEMBERS' => $groups, 'WHO' => $member, 'GID' => [ $gid1, $gid2, $gid3 ], 'INDEX' => $mess_type } );
+						}
+					} elsif ( $type & CAUSED_BY_NETWORK ) {
+						# XXX Unpack the full nodelist
+
+						# Network failure
+						foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+							$_[KERNEL]->post( $l, '_sp_admin', $_[HEAP]->{'PRIV_NAME'}, { 'TYPE' => 'NETWORK', 'GROUP' => $sender, 'MEMBERS' => $groups, 'GID' => [ $gid1, $gid2, $gid3 ], 'INDEX' => $mess_type, 'MESSAGE' => $message } );
+						}
+					} else {
+						# Unknown?
+						foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+							$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'RECEIVE', 'UNKNOWN PACKET TYPE' );
+						}
+					}
+				}
+			} else {
+				# Unknown?
+				foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+					$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'RECEIVE', 'UNKNOWN PACKET TYPE' );
+				}
 			}
 		}
 	}
@@ -474,6 +542,8 @@ POE::Component::SpreadClient - handle Spread communications in POE
 =head1 DESCRIPTION
 
 POE::Component::SpreadClient is a POE component for talking to Spread servers.
+
+This module should only be used with Spread 3.17.3 ( or compatible versions )
 
 =head1 METHODS
 
@@ -533,11 +603,24 @@ POE::Component::SpreadClient is a POE component for talking to Spread servers.
 	$poe_kernel->post( spread => publish => 'chatroom', 'A/S/L?' );
 	$poe_kernel->post( spread => publish => [ 'chatroom', 'stats' ], 'A/S/L?' );
 	$poe_kernel->post( spread => publish => 'chatroom', 'special', 5 );
+	$poe_kernel->post( spread => publish => 'chatroom', 'A/S/L?', undef, RELIABLE_MESS & SELF_DISCARD );
 
 	- The group name(s)
-	- Adding the last parameter ( int ) is the Spread mess_type -> application-defined ( default: 0 )
+	- 2nd parameter ( int ) is the Spread mess_type -> application-defined ( default: 0 )
+	- The 3rd parameter is the spread message type -> import them from Spread.pm ( default: SAFE_MESS )
 
-	Send a simple message to a Spread group(s). This uses the Spread message type 'SAFE_MESS'
+	Send a string to the group(s).
+
+	THIS WILL ONLY SEND STRINGS! If you need to send perl structures, use your own serializer/deserializer!
+
+	REMEMBER about the message size limitation
+
+		From spread-src-3.17.3
+		#define MAX_MESSAGE_BODY_LEN	(MAX_SCATTER_ELEMENTS * (MAX_PACKET_SIZE - 32)) /* 32 is sizeof(packet_header) */
+		#define MAX_SCATTER_ELEMENTS    100
+		#define MAX_PACKET_SIZE 1472	/*1472 = 1536-64 (of udp)*/
+
+		Therefore max message size is 100 * 1440 =~ 140kB
 
 	Will send a C<_sp_error> if unable to publish
 
@@ -589,23 +672,43 @@ POE::Component::SpreadClient is a POE component for talking to Spread servers.
 			# $sperrno = Spread errno, $msg = $groups ( may be undef )
 		} elsif ( $type eq 'UNSUBSCRIBE' ) {
 			# $sperrno = Spread errno, $msg = $groups ( may be undef )
+		} elsif ( $type eq 'RECEIVE' ) {
+			# $sperrno = error string
 		}
 	}
 
 =head2 C<_sp_message>
 
 	sub _sp_message : state {
-		my( $priv_name, $type, $sender, $groups, $mess_type, $message ) = @_[ ARG0 .. ARG5 ];
+		my( $priv_name, $sender, $groups, $mess_type, $message ) = @_[ ARG0 .. ARG4 ];
 
-		# $type is always REGULAR_MESS
-		# $mess_type is 0 unless defined ( mess_type in Spread )
+		# $mess_type is always 0 unless defined ( mess_type in Spread )
 	}
 
 =head2 C<_sp_admin>
 
 	sub _sp_admin : state {
-		my( $priv_name, $type, $sender, $groups, $mess_type, $message ) = @_[ ARG0 .. ARG5 ];
-		# Could be somebody quit/join or something else?
+		my( $priv_name, $data ) = @_[ ARG0, ARG1 ];
+		# $data is hashref with several fields:
+		# TYPE => string ( JOIN | LEAVE | DISCONNECT | SELF_LEAVE | TRANSITIONAL | NETWORK )
+		# GROUP => string ( group name )
+		# GID => [ GID1, GID2, GID3 ] ( look at Spread documentation about this! )
+		# MEMBERS => arrayref of member names
+		# WHO => string ( whomever left/join/discon )
+		# INDEX => index of self in group list
+		# MESSAGE => raw unpacked message ( needed for NETWORK's special parsing, not done! )
+
+		# if TYPE = JOIN | LEAVE | DISCONNECT
+		# GROUP, MEMBERS, WHO, GID, INDEX
+
+		# if TYPE = SELF_LEAVE
+		# GROUP
+
+		# if TYPE = TRANSITIONAL
+		# GROUP
+
+		# if TYPE = NETWORK
+		# GROUP, MEMBERS, GID, INDEX, MESSAGE
 	}
 
 =head1 SpreadClient Notes
@@ -617,13 +720,14 @@ You can enable debugging mode by doing this:
 
 =head1 BUGS
 
-	- Need to expand documentation so the message types in _sp_admin is more understandable
-	- Would love to have more message handling - a simple look at the Spread User's Guide shows a lot of message variety!
 	- Need to be tested more!
+	- Endian mis-match is simply a warn, should it be added to _sp_message ?
 
 =head1 SEE ALSO
 
 L<Spread>
+
+L<Spread::Message>
 
 L<POE::Component::Spread>
 

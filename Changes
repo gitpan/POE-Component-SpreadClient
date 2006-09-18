@@ -1,5 +1,14 @@
 Revision history for Perl extension POE::Component::SpreadClient.
 
+* 0.04
+
+	Added the custom_flags arg to publish
+	Totally revamped the _sp_admin event
+	Removed the $type variable from _sp_message
+	Added 1 more error type to _sp_error
+	POD tweaks as usual
+	Kwalitee-related fixes
+
 * 0.03
 
 	learned about the difference between ref $self and ref( $self )

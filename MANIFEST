@@ -6,4 +6,6 @@ lib/POE/Component/SpreadClient.pm
 lib/POE/Driver/SpreadClient.pm
 lib/POE/Filter/SpreadClient.pm
 examples/simpleClient.pl
-t/Spread.t
+t/1_load.t
+t/2_pod.t
+README
