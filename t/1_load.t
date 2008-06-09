@@ -1,7 +1,5 @@
-use strict;
-use Test::More tests => 3;
+#!/usr/bin/perl
 
-# Load our classes
-use_ok( 'POE::Driver::SpreadClient' );
-use_ok( 'POE::Filter::SpreadClient' );
-use_ok( 'POE::Component::SpreadClient' );
+# Import the stuff
+use Test::UseAllModules;
+BEGIN { all_uses_ok(); }

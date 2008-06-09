@@ -1,13 +1,10 @@
 # Declare our package
 package POE::Driver::SpreadClient;
-
-# Standard stuff to catch errors
-use strict qw(subs vars refs);				# Make sure we can't mess up
-use warnings FATAL => 'all';				# Enable warnings to catch errors
+use strict; use warnings;
 
 # Our version stuff
 # $Revision: 1182 $
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 # Import some stuff
 use Spread;

@@ -1,13 +1,10 @@
 # Declare our package
 package POE::Component::SpreadClient;
-
-# Standard stuff to catch errors
-use strict qw(subs vars refs);				# Make sure we can't mess up
-use warnings FATAL => 'all';				# Enable warnings to catch errors
+use strict; use warnings;
 
 # Our version stuff
-# $Revision: 1209 $
-our $VERSION = '0.04';
+# $Revision: 1218 $
+our $VERSION = '0.05';
 
 # Load our stuff
 use POE qw( Wheel::ReadWrite );
@@ -49,14 +46,15 @@ sub spawn {
 	}
 
 	# Okay, create our session!
-	POE::Session::AttributeBased->create(
+	POE::Session->create(
+		__PACKAGE__->inline_states(),
 		'heap'	=>	{
 			'ALIAS'		=>	$ALIAS,
 		},
 	) or croak;
 }
 
-sub _start : state {
+sub _start : State {
 	# Debugging
 	if ( DEBUG ) {
 		warn "SpreadClient was started!";
@@ -68,7 +66,7 @@ sub _start : state {
 	}
 }
 
-sub _stop : state {
+sub _stop : State {
 	# Debugging
 	if ( DEBUG ) {
 		warn "SpreadClient was stopped!";
@@ -78,7 +76,7 @@ sub _stop : state {
 	$_[KERNEL]->call( $_[SESSION], 'disconnect' );
 }
 
-sub connect : state {
+sub connect : State {
 	# Server info, private name
 	my( $server, $priv ) = @_[ ARG0, ARG1 ];
 
@@ -172,7 +170,7 @@ sub connect : state {
 	return;
 }
 
-sub disconnect : state {
+sub disconnect : State {
 	# Sanity
 	if ( exists $_[HEAP]->{'WHEEL'} and defined $_[HEAP]->{'WHEEL'} ) {
 		# Debugging
@@ -208,7 +206,7 @@ sub disconnect : state {
 	return;
 }
 
-sub destroy : state {
+sub destroy : State {
 	# Okay, destroy ourself!
 	$_[KERNEL]->call( $_[SESSION], 'disconnect' );
 
@@ -219,7 +217,7 @@ sub destroy : state {
 	return;
 }
 
-sub publish : state {
+sub publish : State {
 	my( $groups, $message, $mess_type, $flag ) = @_[ ARG0 .. ARG3 ];
 
 	# Shortcut
@@ -279,7 +277,7 @@ sub publish : state {
 	return;
 }
 
-sub subscribe : state {
+sub subscribe : State {
 	# The groups to join
 	my $groups = $_[ARG0];
 
@@ -335,7 +333,7 @@ sub subscribe : state {
 	return;
 }
 
-sub unsubscribe : state {
+sub unsubscribe : State {
 	# The groups to unsub
 	my $groups = $_[ARG0];
 
@@ -387,7 +385,7 @@ sub unsubscribe : state {
 }
 
 # Registers interest in the client
-sub register : state {
+sub register : State {
 	# Automatically add the sender session to listeners
 	if ( ! exists $_[HEAP]->{'LISTEN'}->{ $_[SENDER]->ID } ) {
 		$_[HEAP]->{'LISTEN'}->{ $_[SENDER]->ID } = 1;
@@ -398,7 +396,7 @@ sub register : state {
 }
 
 # Unregisters interest in the client
-sub unregister : state {
+sub unregister : State {
 	# Automatically add the sender session to listeners
 	if ( exists $_[HEAP]->{'LISTEN'}->{ $_[SENDER]->ID } ) {
 		delete $_[HEAP]->{'LISTEN'}->{ $_[SENDER]->ID };
@@ -408,7 +406,7 @@ sub unregister : state {
 	return;
 }
 
-sub RW_Error : state {
+sub RW_Error : State {
 	# ARG0 = operation, ARG1 = error number, ARG2 = error string, ARG3 = wheel ID
 	my ( $operation, $errnum, $errstr, $id ) = @_[ ARG0 .. ARG3 ];
 
@@ -421,7 +419,7 @@ sub RW_Error : state {
 	$_[KERNEL]->call( $_[SESSION], 'disconnect' );
 }
 
-sub RW_GotPacket : state {
+sub RW_GotPacket : State {
 	my( $type, $sender, $groups, $mess_type, $endian, $message ) = @{ @{ $_[ARG0] }[0] };
 
 	# Check for disconnect
@@ -485,6 +483,11 @@ sub RW_GotPacket : state {
 						}
 					} elsif ( $type & CAUSED_BY_NETWORK ) {
 						# XXX Unpack the full nodelist
+						#my @nodes = unpack( "a32" x ( length( $member ) / 32 + 1 ), $member );
+
+						#if ( SkyNET::DEBUG ) {
+						#	warn "NETWORK nodes:\n" . Data::Dumper::Dumper( \@nodes );
+						#}
 
 						# Network failure
 						foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
@@ -544,6 +547,8 @@ POE::Component::SpreadClient - handle Spread communications in POE
 POE::Component::SpreadClient is a POE component for talking to Spread servers.
 
 This module should only be used with Spread 3.17.3 ( or compatible versions )
+
+XXX Beware: this module hasn't been tested with Spread 4! XXX
 
 =head1 METHODS
 
@@ -646,21 +651,21 @@ This module should only be used with Spread 3.17.3 ( or compatible versions )
 
 =head2 C<_sp_connect>
 
-	sub _sp_connect : state {
+	sub _sp_connect : State {
 		my( $priv_name, $priv_group ) = @_[ ARG0, ARG1 ];
 		# We're connected!
 	}
 
 =head2 C<_sp_disconnect>
 
-	sub _sp_disconnect : state {
+	sub _sp_disconnect : State {
 		my $priv_name = $_[ ARG0 ];
 		# We're disconnected!
 	}
 
 =head2 C<_sp_error>
 
-	sub _sp_error : state {
+	sub _sp_error : State {
 		my( $priv_name, $type, $sperrno, $msg, $data ) = @_[ ARG0 .. ARG4 ];
 
 		# Handle different kinds of errors
@@ -679,7 +684,7 @@ This module should only be used with Spread 3.17.3 ( or compatible versions )
 
 =head2 C<_sp_message>
 
-	sub _sp_message : state {
+	sub _sp_message : State {
 		my( $priv_name, $sender, $groups, $mess_type, $message ) = @_[ ARG0 .. ARG4 ];
 
 		# $mess_type is always 0 unless defined ( mess_type in Spread )
@@ -687,7 +692,7 @@ This module should only be used with Spread 3.17.3 ( or compatible versions )
 
 =head2 C<_sp_admin>
 
-	sub _sp_admin : state {
+	sub _sp_admin : State {
 		my( $priv_name, $data ) = @_[ ARG0, ARG1 ];
 		# $data is hashref with several fields:
 		# TYPE => string ( JOIN | LEAVE | DISCONNECT | SELF_LEAVE | TRANSITIONAL | NETWORK )
@@ -738,7 +743,7 @@ Rob Partington <perl-pcs@frottage.org>.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2006 by Apocalypse
+Copyright 2008 by Apocalypse
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

@@ -1,5 +1,10 @@
 Revision history for Perl extension POE::Component::SpreadClient.
 
+* 0.05
+
+	tweaked the POE::Session::AttributeBased code for compatibility, apologies for the late release!
+		- thanks to XANTUS and FMERGES
+
 * 0.04
 
 	Added the custom_flags arg to publish
