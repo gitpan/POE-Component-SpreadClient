@@ -5,14 +5,23 @@ WriteMakefile(
 	NAME			=> 'POE::Component::SpreadClient',
 	VERSION_FROM		=> 'lib/POE/Component/SpreadClient.pm', # finds $VERSION
 	PREREQ_PM		=> {
-		'POE'		=>	'0.37',
-			'POE::Session::AttributeBased'	=>	'0.07',
-			'POE::Wheel::ReadWrite'		=>	0,
+		'POE'				=>	'0.37',
+		'POE::Session::AttributeBased'	=>	'0.07',
+		'POE::Wheel::ReadWrite'		=>	0,
 
-		'Spread'	=>	'3.17',
-		'Carp'		=>	0,
+		'Spread'			=>	'3.17',
 
-		'Test::More'	=>	0,
+		# test stuff
+		'Test::More'		=> 0,
+		'Test::Distribution'	=> 0,
+		'Test::Strict'		=> 0,
+		'Test::HasVersion'	=> 0,
+		'Test::CheckManifest'	=> 0,
+		'Test::Kwalitee'	=> 0,
+		'Test::MinimumVersion'	=> 0,
+		'Test::Pod'		=> 0,
+		'Test::Pod::Coverage'	=> 0,
+		'Test::UseAllModules'	=> 0,
 	},
 	(	$] >= 5.005 ?		# Add new keywords
 		(

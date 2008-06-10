@@ -3,8 +3,8 @@ package POE::Driver::SpreadClient;
 use strict; use warnings;
 
 # Our version stuff
-# $Revision: 1182 $
-our $VERSION = '0.02';
+use vars qw( $VERSION );
+$VERSION = (qw$LastChangedRevision: 9 $)[1];
 
 # Import some stuff
 use Spread;

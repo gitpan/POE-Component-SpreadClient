@@ -1,5 +1,9 @@
 Revision history for Perl extension POE::Component::SpreadClient.
 
+* 0.06
+
+	Kwalitee-related fixes
+
 * 0.05
 
 	tweaked the POE::Session::AttributeBased code for compatibility, apologies for the late release!

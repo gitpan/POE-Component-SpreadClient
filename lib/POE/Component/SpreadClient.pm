@@ -2,18 +2,15 @@
 package POE::Component::SpreadClient;
 use strict; use warnings;
 
-# Our version stuff
-# $Revision: 1218 $
-our $VERSION = '0.05';
+# Initialize our version $LastChangedRevision: 9 $
+use vars qw( $VERSION );
+$VERSION = '0.06';
 
 # Load our stuff
 use POE qw( Wheel::ReadWrite );
 use POE::Driver::SpreadClient;
 use POE::Filter::SpreadClient;
 use Spread qw( :MESS :ERROR );
-
-# Other miscellaneous modules we need
-use Carp;
 
 # Generate our states!
 use base 'POE::Session::AttributeBased';
@@ -51,7 +48,7 @@ sub spawn {
 		'heap'	=>	{
 			'ALIAS'		=>	$ALIAS,
 		},
-	) or croak;
+	);
 }
 
 sub _start : State {
