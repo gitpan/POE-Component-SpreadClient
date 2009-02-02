@@ -224,7 +224,9 @@ SEE ALSO
 
     POE::Component::Spread
 
-CREDITS
+AUTHOR
+    Apocalypse <apocal@cpan.org>
+
     The base for this module was lifted from POE::Component::Spread by Rob
     Partington <perl-pcs@frottage.org>.
 
