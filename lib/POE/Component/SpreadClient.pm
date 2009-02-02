@@ -4,10 +4,13 @@ use strict; use warnings;
 
 # Initialize our version $LastChangedRevision: 9 $
 use vars qw( $VERSION );
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 # Load our stuff
-use POE qw( Wheel::ReadWrite );
+use 5.006;	# to silence Perl::Critic's Compatibility::ProhibitThreeArgumentOpen
+use POE;
+use POE::Session;
+use POE::Wheel::ReadWrite;
 use POE::Driver::SpreadClient;
 use POE::Filter::SpreadClient;
 use Spread qw( :MESS :ERROR );
@@ -17,10 +20,7 @@ use base 'POE::Session::AttributeBased';
 
 # Set some constants
 BEGIN {
-	# Debug fun!
-	if ( ! defined &DEBUG ) {
-		eval "sub DEBUG () { 0 }";
-	}
+	if ( ! defined &DEBUG ) { *DEBUG = sub () { 0 } }
 }
 
 # Create our instance!
@@ -44,11 +44,14 @@ sub spawn {
 
 	# Okay, create our session!
 	POE::Session->create(
-		__PACKAGE__->inline_states(),
+		__PACKAGE__->inline_states(),		## no critic ( RequireExplicitInclusion )
 		'heap'	=>	{
 			'ALIAS'		=>	$ALIAS,
 		},
 	);
+
+	# return success
+	return 1;
 }
 
 sub _start : State {
@@ -61,6 +64,8 @@ sub _start : State {
 	if ( $_[KERNEL]->alias_set( $_[HEAP]->{'ALIAS'} ) != 0 ) {
 		die "unable to set alias: " . $_[HEAP]->{'ALIAS'};
 	}
+
+	return;
 }
 
 sub _stop : State {
@@ -71,6 +76,8 @@ sub _stop : State {
 
 	# Wow, go disconnect ourself!
 	$_[KERNEL]->call( $_[SESSION], 'disconnect' );
+
+	return;
 }
 
 sub connect : State {
@@ -141,7 +148,7 @@ sub connect : State {
 			$_[HEAP]->{'MBOX'} = $mbox;
 
 			# Create a FH to feed into Wheel::ReadWrite
-			open $_[HEAP]->{'FH'}, "<&=$mbox";
+			open $_[HEAP]->{'FH'}, '<&=', $mbox;
 
 			# Finally, create the wheel!
 			$_[HEAP]->{'WHEEL'} = POE::Wheel::ReadWrite->new(
@@ -193,7 +200,7 @@ sub disconnect : State {
 		$_[HEAP]->{'DISCONNECTED'} = 1;
 
 		# Inform our registered listeners
-		# XXX Should I use POST here instead?
+		# FIXME Should I use POST here instead?
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 			$_[KERNEL]->call( $l, '_sp_disconnect', $_[HEAP]->{'PRIV_NAME'} );
 		}
@@ -294,12 +301,8 @@ sub subscribe : State {
 		return;
 	}
 
-	# Spread.pm doesn't like one-member group via arrayref...
-	if ( defined $groups ) {
-		if ( ref $groups and ref( $groups ) eq 'ARRAY' and scalar @$groups == 1 ) {
-			$groups = $groups->[0];
-		}
-	} else {
+	# sanity check
+	if ( ! defined $groups ) {
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'SUBSCRIBE', ILLEGAL_GROUP, undef );
@@ -309,20 +312,30 @@ sub subscribe : State {
 		return;
 	}
 
-	# Actually join!
-	my $rtn;
 	eval {
-		$rtn = Spread::join( $_[HEAP]->{'MBOX'}, $groups );
-	};
-	if ( $@ or ! $rtn ) {
-		# Check for disconnect
-		if ( defined $sperrno and $sperrno == CONNECTION_CLOSED ) {
-			$_[KERNEL]->call( $_[SESSION], 'disconnect' );
-		}
+		# try to join each group
+		foreach my $g ( ref $groups ? @$groups : $groups ) {
+			if ( ! Spread::join( $_[HEAP]->{'MBOX'}, $g ) ) {
+				# Check for disconnect
+				if ( defined $sperrno and $sperrno == CONNECTION_CLOSED ) {
+					die "disconnected";
+				}
 
+				# Inform our registered listeners
+				foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+					$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'SUBSCRIBE', $sperrno, $g );
+				}
+			}
+		}
+	};
+	if ( $@ ) {
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'SUBSCRIBE', $sperrno, $groups );
+		}
+
+		if ( $@ eq "disconnected" ) {
+			$_[KERNEL]->call( $_[SESSION], 'disconnect' );
 		}
 	}
 
@@ -345,12 +358,8 @@ sub unsubscribe : State {
 		return;
 	}
 
-	# Spread.pm doesn't like one-member group via arrayref...
-	if ( defined $groups ) {
-		if ( ref $groups and ref( $groups ) eq 'ARRAY' and scalar @$groups == 1 ) {
-			$groups = $groups->[0];
-		}
-	} else {
+	# sanity
+	if ( ! defined $groups ) {
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'UNSUBSCRIBE', ILLEGAL_GROUP, undef );
@@ -360,20 +369,30 @@ sub unsubscribe : State {
 		return;
 	}
 
-	# Actually leave!
-	my $rtn;
 	eval {
-		$rtn = Spread::leave( $_[HEAP]->{'MBOX'}, $groups );
-	};
-	if ( $@ or ! $rtn ) {
-		# Check for disconnect
-		if ( defined $sperrno and $sperrno == CONNECTION_CLOSED ) {
-			$_[KERNEL]->call( $_[SESSION], 'disconnect' );
-		}
+		# try to leave each group
+		foreach my $g ( ref $groups ? @$groups : $groups ) {
+			if ( ! Spread::leave( $_[HEAP]->{'MBOX'}, $g ) ) {
+				# Check for disconnect
+				if ( defined $sperrno and $sperrno == CONNECTION_CLOSED ) {
+					die "disconnected";
+				}
 
+				# Inform our registered listeners
+				foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+					$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'UNSUBSCRIBE', $sperrno, $g );
+				}
+			}
+		}
+	};
+	if ( $@ ) {
 		# Inform our registered listeners
 		foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 			$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'UNSUBSCRIBE', $sperrno, $groups );
+		}
+
+		if ( $@ eq "disconnected" ) {
+			$_[KERNEL]->call( $_[SESSION], 'disconnect' );
 		}
 	}
 
@@ -414,6 +433,8 @@ sub RW_Error : State {
 
 	# Disconnect now!
 	$_[KERNEL]->call( $_[SESSION], 'disconnect' );
+
+	return;
 }
 
 sub RW_GotPacket : State {
@@ -428,7 +449,7 @@ sub RW_GotPacket : State {
 		if ( $type & REGULAR_MESS ) {
 			# Do we have an endian problem?
 			if ( defined $endian and $endian ) {
-				# XXX Argh!
+				# FIXME Argh!
 				if ( DEBUG ) {
 					warn "endian mis-match detected!";
 				}
@@ -479,12 +500,8 @@ sub RW_GotPacket : State {
 							$_[KERNEL]->post( $l, '_sp_admin', $_[HEAP]->{'PRIV_NAME'}, { 'TYPE' => 'DISCONNECT', 'GROUP' => $sender, 'MEMBERS' => $groups, 'WHO' => $member, 'GID' => [ $gid1, $gid2, $gid3 ], 'INDEX' => $mess_type } );
 						}
 					} elsif ( $type & CAUSED_BY_NETWORK ) {
-						# XXX Unpack the full nodelist
+						# FIXME Unpack the full nodelist
 						#my @nodes = unpack( "a32" x ( length( $member ) / 32 + 1 ), $member );
-
-						#if ( SkyNET::DEBUG ) {
-						#	warn "NETWORK nodes:\n" . Data::Dumper::Dumper( \@nodes );
-						#}
 
 						# Network failure
 						foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
@@ -515,7 +532,7 @@ __END__
 
 =head1 NAME
 
-POE::Component::SpreadClient - handle Spread communications in POE
+POE::Component::SpreadClient - Handle Spread communications in POE
 
 =head1 SYNOPSIS
 
@@ -523,12 +540,12 @@ POE::Component::SpreadClient - handle Spread communications in POE
 
 	POE::Session->create(
 	    inline_states => {
-	        _start => \&_start,
-	        _sp_message => \&do_something,
-	        _sp_admin => \&do_something,
-	        _sp_connect => \&do_something,
-	        _sp_disconnect => \&do_something,
-	        _sp_error => \&do_something,
+		_start => \&_start,
+		_sp_message => \&do_something,
+		_sp_admin => \&do_something,
+		_sp_connect => \&do_something,
+		_sp_disconnect => \&do_something,
+		_sp_error => \&do_something,
 	    }
 	);
 
@@ -720,10 +737,39 @@ You can enable debugging mode by doing this:
 	sub POE::Component::SpreadClient::DEBUG () { 1 }
 	use POE::Component::SpreadClient;
 
-=head1 BUGS
+=head1 SUPPORT
 
-	- Need to be tested more!
-	- Endian mis-match is simply a warn, should it be added to _sp_message ?
+You can find documentation for this module with the perldoc command.
+
+    perldoc POE::Component::SpreadClient
+
+=head2 Websites
+
+=over 4
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/POE-Component-SpreadClient>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/d/POE-Component-SpreadClient>
+
+=item * RT: CPAN's request tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=POE-Component-SpreadClient>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/POE-Component-SpreadClient>
+
+=back
+
+=head2 Bugs
+
+Please report any bugs or feature requests to C<bug-poe-component-spreadclient at rt.cpan.org>, or through
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=POE-Component-SpreadClient>.  I will be
+notified, and then you'll automatically be notified of progress on your bug as I make changes.
 
 =head1 SEE ALSO
 
@@ -740,7 +786,7 @@ Rob Partington <perl-pcs@frottage.org>.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2008 by Apocalypse
+Copyright 2009 by Apocalypse
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

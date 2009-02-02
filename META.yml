@@ -1,27 +1,31 @@
---- #YAML:1.0
-name:                POE-Component-SpreadClient
-version:             0.06
-abstract:            handle Spread communications in POE
-license:             perl
-author:              
-    - Apocalypse <APOCAL@cpan.org>
-generated_by:        ExtUtils::MakeMaker version 6.44
-distribution_type:   module
-requires:     
-    POE:                           0.37
-    POE::Session::AttributeBased:  0.07
-    POE::Wheel::ReadWrite:         0
-    Spread:                        3.17
-    Test::CheckManifest:           0
-    Test::Distribution:            0
-    Test::HasVersion:              0
-    Test::Kwalitee:                0
-    Test::MinimumVersion:          0
-    Test::More:                    0
-    Test::Pod:                     0
-    Test::Pod::Coverage:           0
-    Test::Strict:                  0
-    Test::UseAllModules:           0
+---
+name: POE-Component-SpreadClient
+version: 0.07
+author:
+  - 'Apocalypse <APOCAL@cpan.org>'
+abstract: Handle Spread communications in POE
+license: perl
+resources:
+  license: http://dev.perl.org/licenses/
+requires:
+  POE: 0
+  POE::Session: 0
+  POE::Session::AttributeBased: 0
+  POE::Wheel::ReadWrite: 0
+  Spread: 3.017
+  perl: 5.006
+dynamic_config: 0
+provides:
+  POE::Component::SpreadClient:
+    file: lib/POE/Component/SpreadClient.pm
+    version: 0.07
+  POE::Driver::SpreadClient:
+    file: lib/POE/Driver/SpreadClient.pm
+    version: 0.07
+  POE::Filter::SpreadClient:
+    file: lib/POE/Filter/SpreadClient.pm
+    version: 0.07
+generated_by: Module::Build version 0.280801
 meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
-    version: 1.3
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2
