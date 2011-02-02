@@ -37,6 +37,8 @@ METHODS
 
             - The alias the component will take ( default: "SpreadClient" )
 
+            Returns the session ID.
+
 Public API
   connect
             $poe_kernel->post( spread => connect => '4444@localhost' );
@@ -118,19 +120,19 @@ Public API
             Destroys the session by removing it's alias and disconnecting if needed with C<_sp_disconnect>
 
 EVENTS
-  "_sp_connect"
+  `_sp_connect'
             sub _sp_connect : State {
                     my( $priv_name, $priv_group ) = @_[ ARG0, ARG1 ];
                     # We're connected!
             }
 
-  "_sp_disconnect"
+  `_sp_disconnect'
             sub _sp_disconnect : State {
                     my $priv_name = $_[ ARG0 ];
                     # We're disconnected!
             }
 
-  "_sp_error"
+  `_sp_error'
             sub _sp_error : State {
                     my( $priv_name, $type, $sperrno, $msg, $data ) = @_[ ARG0 .. ARG4 ];
 
@@ -148,14 +150,14 @@ EVENTS
                     }
             }
 
-  "_sp_message"
+  `_sp_message'
             sub _sp_message : State {
                     my( $priv_name, $sender, $groups, $mess_type, $message ) = @_[ ARG0 .. ARG4 ];
 
                     # $mess_type is always 0 unless defined ( mess_type in Spread )
             }
 
-  "_sp_admin"
+  `_sp_admin'
             sub _sp_admin : State {
                     my( $priv_name, $data ) = @_[ ARG0, ARG1 ];
                     # $data is hashref with several fields:
@@ -192,29 +194,24 @@ SUPPORT
         perldoc POE::Component::SpreadClient
 
   Websites
-    *   AnnoCPAN: Annotated CPAN documentation
+    * AnnoCPAN: Annotated CPAN documentation
+        http://annocpan.org/dist/POE-Component-SpreadClient
 
-        <http://annocpan.org/dist/POE-Component-SpreadClient>
+    * CPAN Ratings
+        http://cpanratings.perl.org/d/POE-Component-SpreadClient
 
-    *   CPAN Ratings
+    * RT: CPAN's request tracker
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=POE-Component-SpreadClient
 
-        <http://cpanratings.perl.org/d/POE-Component-SpreadClient>
-
-    *   RT: CPAN's request tracker
-
-        <http://rt.cpan.org/NoAuth/Bugs.html?Dist=POE-Component-SpreadClient
-        >
-
-    *   Search CPAN
-
-        <http://search.cpan.org/dist/POE-Component-SpreadClient>
+    * Search CPAN
+        http://search.cpan.org/dist/POE-Component-SpreadClient
 
   Bugs
     Please report any bugs or feature requests to
-    "bug-poe-component-spreadclient at rt.cpan.org", or through the web
+    `bug-poe-component-spreadclient at rt.cpan.org', or through the web
     interface at
-    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=POE-Component-SpreadClie
-    nt>. I will be notified, and then you'll automatically be notified of
+    http://rt.cpan.org/NoAuth/ReportBug.html?Queue=POE-Component-SpreadClien
+    t. I will be notified, and then you'll automatically be notified of
     progress on your bug as I make changes.
 
 SEE ALSO
