@@ -6,10 +6,10 @@
 # This is free software; you can redistribute it and/or modify it under
 # the same terms as the Perl 5 programming language system itself.
 #
-use strict; use warnings FATAL => 'all';
+use strict; use warnings;
 package POE::Component::SpreadClient;
 BEGIN {
-  $POE::Component::SpreadClient::VERSION = '1.000';
+  $POE::Component::SpreadClient::VERSION = '1.001';
 }
 BEGIN {
   $POE::Component::SpreadClient::AUTHORITY = 'cpan:APOCAL';
@@ -574,7 +574,7 @@ POE::Component::SpreadClient - Handle Spread communications in POE
 
 =head1 VERSION
 
-  This document describes v1.000 of POE::Component::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
+  This document describes v1.001 of POE::Component::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
 
 =head1 SYNOPSIS
 

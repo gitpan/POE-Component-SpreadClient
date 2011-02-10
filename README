@@ -2,7 +2,7 @@ NAME
     POE::Component::SpreadClient - Handle Spread communications in POE
 
 VERSION
-      This document describes v1.000 of POE::Component::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
+      This document describes v1.001 of POE::Component::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
 
 SYNOPSIS
             POE::Component::SpreadClient->spawn( 'spread' );

@@ -52,15 +52,15 @@
    "provides" : {
       "POE::Component::SpreadClient" : {
          "file" : "lib/POE/Component/SpreadClient.pm",
-         "version" : "1.000"
+         "version" : "1.001"
       },
       "POE::Driver::SpreadClient" : {
          "file" : "lib/POE/Driver/SpreadClient.pm",
-         "version" : "1.000"
+         "version" : "1.001"
       },
       "POE::Filter::SpreadClient" : {
          "file" : "lib/POE/Filter/SpreadClient.pm",
-         "version" : "1.000"
+         "version" : "1.001"
       }
    },
    "release_status" : "stable",
@@ -79,7 +79,7 @@
          "web" : "http://github.com/apocalypse/perl-poe-spreadclient"
       }
    },
-   "version" : "1.000",
+   "version" : "1.001",
    "x_BuiltWith" : {
       "modules" : {
          "File::Find" : "1.12",

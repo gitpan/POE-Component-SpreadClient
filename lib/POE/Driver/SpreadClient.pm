@@ -6,10 +6,10 @@
 # This is free software; you can redistribute it and/or modify it under
 # the same terms as the Perl 5 programming language system itself.
 #
-use strict; use warnings FATAL => 'all';
+use strict; use warnings;
 package POE::Driver::SpreadClient;
 BEGIN {
-  $POE::Driver::SpreadClient::VERSION = '1.000';
+  $POE::Driver::SpreadClient::VERSION = '1.001';
 }
 BEGIN {
   $POE::Driver::SpreadClient::AUTHORITY = 'cpan:APOCAL';
@@ -58,7 +58,7 @@ POE::Driver::SpreadClient - Implements the Spread driver for POE
 
 =head1 VERSION
 
-  This document describes v1.000 of POE::Driver::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
+  This document describes v1.001 of POE::Driver::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
 
 =head1 DESCRIPTION
 
