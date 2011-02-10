@@ -1,0 +1,41 @@
+This file contains message digests of all files listed in MANIFEST,
+signed via the Module::Signature module, version 0.66.
+
+To verify the content in this distribution, first make sure you have
+Module::Signature installed, then type:
+
+    % cpansign -v
+
+It will check each file's integrity, as well as the signature's
+validity.  If "==> Signature verified OK! <==" is not displayed,
+the distribution may already have been compromised, and you should
+not run its Makefile.PL or Build.PL.
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+SHA1 8d949bba143340038a75fc0b0ad488f8c905c60e Build.PL
+SHA1 4e1cafcc6f63c09498319cb31e311e8b52f22f95 Changes
+SHA1 f7229c4d69aace7b238ecf706dcd9ee588bcd6d3 CommitLog
+SHA1 1543bc6399af4d62021360bd3c87b76541f3eedf INSTALL
+SHA1 263360e99a0de4d587fedefe1a919dcf61af1d10 LICENSE
+SHA1 9f5a025c48eabf7c6ea08a5295104c30c180ff16 MANIFEST
+SHA1 9dfc07c5655b958e800189837f3ddd37ca050bfe MANIFEST.SKIP
+SHA1 2d645b155e3efb8b9795dc54bed81fc5fff8a2f3 META.json
+SHA1 23784d83d4cf48c2368c961593e7f49263d84390 META.yml
+SHA1 236c62f540570a7cefad11d3524cfaff77990a64 Makefile.PL
+SHA1 e9f975fe66f8424d3a00e710f696c8ac9609ec4f README
+SHA1 dfe190e9a99d9d2c40253351250dca7743d8f74b dist.ini
+SHA1 570643f3f123b2ad73aceda0fbff9120877cf6d9 examples/simpleClient.pl
+SHA1 7564799259a0ee1a66b036c52f984b742e01aa06 lib/POE/Component/SpreadClient.pm
+SHA1 0328e3aa7d0e3430b16eb71f84134827cf080b17 lib/POE/Driver/SpreadClient.pm
+SHA1 60e30df50016f29b5b3b5b6038d0cdbca6f1728c lib/POE/Filter/SpreadClient.pm
+SHA1 a5e398baa2ed08fea2a9088d20f52e8197a8704e t/00-compile.t
+SHA1 4cba7e18393edf7bd3ca3b8e9204e8e9a02d82e7 t/000-report-versions-tiny.t
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEARECAAYFAk1TR4kACgkQGfr7vsGKgxzbagCg7A8t2PXXSrl3dX9OVj/3NnTy
+JFkAnjbd+IX4fF1cV/BW+419ojbuQbdW
+=qibt
+-----END PGP SIGNATURE-----

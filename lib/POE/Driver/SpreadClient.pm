@@ -1,10 +1,21 @@
-# Declare our package
+#
+# This file is part of POE-Component-SpreadClient
+#
+# This software is copyright (c) 2011 by Apocalypse.
+#
+# This is free software; you can redistribute it and/or modify it under
+# the same terms as the Perl 5 programming language system itself.
+#
+use strict; use warnings FATAL => 'all';
 package POE::Driver::SpreadClient;
-use strict; use warnings;
+BEGIN {
+  $POE::Driver::SpreadClient::VERSION = '1.000';
+}
+BEGIN {
+  $POE::Driver::SpreadClient::AUTHORITY = 'cpan:APOCAL';
+}
 
-# Our version stuff
-use vars qw( $VERSION );
-$VERSION = '0.09';
+# ABSTRACT: Implements the Spread driver for POE
 
 # Import some stuff
 use Spread;
@@ -36,4 +47,47 @@ sub get {
 }
 
 1;
+
+
 __END__
+=pod
+
+=head1 NAME
+
+POE::Driver::SpreadClient - Implements the Spread driver for POE
+
+=head1 VERSION
+
+  This document describes v1.000 of POE::Driver::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
+
+=head1 DESCRIPTION
+
+This module implements the L<POE::Driver> interface for Spread.
+
+=head1 SEE ALSO
+
+Please see those modules/websites for more information related to this module.
+
+=over 4
+
+=item *
+
+L<POE::Component::SpreadClient>
+
+=back
+
+=head1 AUTHOR
+
+Apocalypse <APOCAL@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2011 by Apocalypse.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+The full text of the license can be found in the LICENSE file included with this distribution.
+
+=cut
+

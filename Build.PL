@@ -1,40 +1,43 @@
-# Build.PL
-use strict; use warnings;
-use Module::Build;
 
-my $build = Module::Build->new(
-	# look up Module::Build::API for the info!
-	'dynamic_config'	=> 0,
-	'module_name'		=> 'POE::Component::SpreadClient',
-	'license'		=> 'perl',
+use strict;
+use warnings;
 
-	'dist_abstract'		=> "Handle Spread communications in POE",
-	'dist_author'		=> 'Apocalypse <APOCAL@cpan.org>',
+use Module::Build 0.3601;
 
-	'create_packlist'	=> 1,
-	'create_makefile_pl'	=> 'traditional',
-	'create_readme'		=> 1,
 
-	'test_files'		=> 't/*.t',
-
-	'requires'		=> {
-		# POE Stuff
-		'POE'				=> 0,
-		'POE::Session::AttributeBased'	=> 0,
-
-		# FIXME POE stuff that Test::Dependencies needs to see
-		'POE::Session'			=> 0,
-		'POE::Wheel::ReadWrite'		=> 0,
-
-		# Spread itself!
-		'Spread'			=> '3.017',
-
-		# minimum perl version
-		'perl'				=> '5.006',
-
-		'constant'			=> 0,
-	},
+my %module_build_args = (
+  'build_requires' => {
+    'File::Find' => '0',
+    'File::Temp' => '0',
+    'Module::Build' => '0.3601',
+    'Test::More' => '0.88'
+  },
+  'configure_requires' => {
+    'Module::Build' => '0.3601'
+  },
+  'dist_abstract' => 'Handle Spread communications in POE',
+  'dist_author' => [
+    'Apocalypse <APOCAL@cpan.org>'
+  ],
+  'dist_name' => 'POE-Component-SpreadClient',
+  'dist_version' => '1.000',
+  'license' => 'perl',
+  'module_name' => 'POE::Component::SpreadClient',
+  'recommends' => {},
+  'recursive_test_files' => 1,
+  'requires' => {
+    'POE' => '0',
+    'POE::Session' => '0',
+    'POE::Session::AttributeBased' => '0',
+    'POE::Wheel::ReadWrite' => '0',
+    'Spread' => '3.017',
+    'constant' => '0',
+    'perl' => '5.006'
+  },
+  'script_files' => []
 );
 
-# all done!
+
+my $build = Module::Build->new(%module_build_args);
+
 $build->create_build_script;

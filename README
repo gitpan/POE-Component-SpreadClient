@@ -1,6 +1,9 @@
 NAME
     POE::Component::SpreadClient - Handle Spread communications in POE
 
+VERSION
+      This document describes v1.000 of POE::Component::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
+
 SYNOPSIS
             POE::Component::SpreadClient->spawn( 'spread' );
 
@@ -120,19 +123,19 @@ Public API
             Destroys the session by removing it's alias and disconnecting if needed with C<_sp_disconnect>
 
 EVENTS
-  `_sp_connect'
+  "_sp_connect"
             sub _sp_connect : State {
                     my( $priv_name, $priv_group ) = @_[ ARG0, ARG1 ];
                     # We're connected!
             }
 
-  `_sp_disconnect'
+  "_sp_disconnect"
             sub _sp_disconnect : State {
                     my $priv_name = $_[ ARG0 ];
                     # We're disconnected!
             }
 
-  `_sp_error'
+  "_sp_error"
             sub _sp_error : State {
                     my( $priv_name, $type, $sperrno, $msg, $data ) = @_[ ARG0 .. ARG4 ];
 
@@ -150,14 +153,14 @@ EVENTS
                     }
             }
 
-  `_sp_message'
+  "_sp_message"
             sub _sp_message : State {
                     my( $priv_name, $sender, $groups, $mess_type, $message ) = @_[ ARG0 .. ARG4 ];
 
                     # $mess_type is always 0 unless defined ( mess_type in Spread )
             }
 
-  `_sp_admin'
+  "_sp_admin"
             sub _sp_admin : State {
                     my( $priv_name, $data ) = @_[ ARG0, ARG1 ];
                     # $data is hashref with several fields:
@@ -188,48 +191,118 @@ SpreadClient Notes
             sub POE::Component::SpreadClient::DEBUG () { 1 }
             use POE::Component::SpreadClient;
 
+SEE ALSO
+    Please see those modules/websites for more information related to this
+    module.
+
+    *   Spread
+
+    *   Spread::Message
+
 SUPPORT
+  Perldoc
     You can find documentation for this module with the perldoc command.
 
-        perldoc POE::Component::SpreadClient
+      perldoc POE::Component::SpreadClient
 
   Websites
-    * AnnoCPAN: Annotated CPAN documentation
-        http://annocpan.org/dist/POE-Component-SpreadClient
+    The following websites have more information about this module, and may
+    be of help to you. As always, in addition to those websites please use
+    your favorite search engine to discover more resources.
 
-    * CPAN Ratings
-        http://cpanratings.perl.org/d/POE-Component-SpreadClient
+    *   Search CPAN
 
-    * RT: CPAN's request tracker
-        http://rt.cpan.org/NoAuth/Bugs.html?Dist=POE-Component-SpreadClient
+        <http://search.cpan.org/dist/POE-Component-SpreadClient>
 
-    * Search CPAN
-        http://search.cpan.org/dist/POE-Component-SpreadClient
+    *   RT: CPAN's Bug Tracker
 
-  Bugs
-    Please report any bugs or feature requests to
-    `bug-poe-component-spreadclient at rt.cpan.org', or through the web
+        <http://rt.cpan.org/NoAuth/Bugs.html?Dist=POE-Component-SpreadClient
+        >
+
+    *   AnnoCPAN: Annotated CPAN documentation
+
+        <http://annocpan.org/dist/POE-Component-SpreadClient>
+
+    *   CPAN Ratings
+
+        <http://cpanratings.perl.org/d/POE-Component-SpreadClient>
+
+    *   CPAN Forum
+
+        <http://cpanforum.com/dist/POE-Component-SpreadClient>
+
+    *   CPANTS Kwalitee
+
+        <http://cpants.perl.org/dist/overview/POE-Component-SpreadClient>
+
+    *   CPAN Testers Results
+
+        <http://cpantesters.org/distro/P/POE-Component-SpreadClient.html>
+
+    *   CPAN Testers Matrix
+
+        <http://matrix.cpantesters.org/?dist=POE-Component-SpreadClient>
+
+  Email
+    You can email the author of this module at "APOCAL at cpan.org" asking
+    for help with any problems you have.
+
+  Internet Relay Chat
+    You can get live help by using IRC ( Internet Relay Chat ). If you don't
+    know what IRC is, please read this excellent guide:
+    <http://en.wikipedia.org/wiki/Internet_Relay_Chat>. Please be courteous
+    and patient when talking to us, as we might be busy or sleeping! You can
+    join those networks/channels and get help:
+
+    *   irc.perl.org
+
+        You can connect to the server at 'irc.perl.org' and join this
+        channel: #perl-help then talk to this person for help: Apocalypse.
+
+    *   irc.freenode.net
+
+        You can connect to the server at 'irc.freenode.net' and join this
+        channel: #perl then talk to this person for help: Apocal.
+
+    *   irc.efnet.org
+
+        You can connect to the server at 'irc.efnet.org' and join this
+        channel: #perl then talk to this person for help: Ap0cal.
+
+  Bugs / Feature Requests
+    Please report any bugs or feature requests by email to
+    "bug-poe-component-spreadclient at rt.cpan.org", or through the web
     interface at
-    http://rt.cpan.org/NoAuth/ReportBug.html?Queue=POE-Component-SpreadClien
-    t. I will be notified, and then you'll automatically be notified of
-    progress on your bug as I make changes.
+    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=POE-Component-SpreadClie
+    nt>. You will be automatically notified of any progress on the request
+    by the system.
 
-SEE ALSO
-    Spread
+  Source Code
+    The code is open to the world, and available for you to hack on. Please
+    feel free to browse it and play with it, or whatever. If you want to
+    contribute patches, please send me a diff or prod me to pull from your
+    repository :)
 
-    Spread::Message
+    <http://github.com/apocalypse/perl-poe-spreadclient>
 
-    POE::Component::Spread
+      git clone git://github.com/apocalypse/perl-poe-spreadclient.git
 
 AUTHOR
-    Apocalypse <apocal@cpan.org>
+    Apocalypse <APOCAL@cpan.org>
 
+ACKNOWLEDGEMENTS
     The base for this module was lifted from POE::Component::Spread by Rob
     Partington <perl-pcs@frottage.org>.
 
-COPYRIGHT AND LICENSE
-    Copyright 2009 by Apocalypse
+    Thanks goes to Rob Bloodgood ( RDB ) for making sure this module still
+    works!
 
-    This library is free software; you can redistribute it and/or modify it
-    under the same terms as Perl itself.
+COPYRIGHT AND LICENSE
+    This software is copyright (c) 2011 by Apocalypse.
+
+    This is free software; you can redistribute it and/or modify it under
+    the same terms as the Perl 5 programming language system itself.
+
+    The full text of the license can be found in the LICENSE file included
+    with this distribution.
 

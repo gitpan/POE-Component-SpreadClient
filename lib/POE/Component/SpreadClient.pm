@@ -1,10 +1,21 @@
-# Declare our package
+#
+# This file is part of POE-Component-SpreadClient
+#
+# This software is copyright (c) 2011 by Apocalypse.
+#
+# This is free software; you can redistribute it and/or modify it under
+# the same terms as the Perl 5 programming language system itself.
+#
+use strict; use warnings FATAL => 'all';
 package POE::Component::SpreadClient;
-use strict; use warnings;
+BEGIN {
+  $POE::Component::SpreadClient::VERSION = '1.000';
+}
+BEGIN {
+  $POE::Component::SpreadClient::AUTHORITY = 'cpan:APOCAL';
+}
 
-# Initialize our version $LastChangedRevision: 9 $
-use vars qw( $VERSION );
-$VERSION = '0.09';
+# ABSTRACT: Handle Spread communications in POE
 
 # Load our stuff
 use 5.006;	# to silence Perl::Critic's Compatibility::ProhibitThreeArgumentOpen
@@ -13,7 +24,7 @@ use POE::Session;
 use POE::Wheel::ReadWrite;
 use POE::Driver::SpreadClient;
 use POE::Filter::SpreadClient;
-use Spread qw( :MESS :ERROR );
+use Spread 3.017 qw( :MESS :ERROR );
 
 # Generate our states!
 use base 'POE::Session::AttributeBased';
@@ -148,25 +159,46 @@ sub connect : State {
 			$_[HEAP]->{'MBOX'} = $mbox;
 
 			# Create a FH to feed into Wheel::ReadWrite
-			open $_[HEAP]->{'FH'}, '<&=', $mbox;
-
-			# Finally, create the wheel!
-			$_[HEAP]->{'WHEEL'} = POE::Wheel::ReadWrite->new(
-				'Handle'	=> $_[HEAP]->{'FH'},
-				'Driver'	=> POE::Driver::SpreadClient->new( $mbox ),
-				'Filter'	=> POE::Filter::SpreadClient->new(),
-
-				'InputEvent' => 'RW_GotPacket',
-				'ErrorEvent' => 'RW_Error'
-			);
-
-			# Inform our registered listeners
-			foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
-				$_[KERNEL]->post( $l, '_sp_connect', $priv, $priv_group );
+			# we retry because... there seems to be several microseconds until fileno() works!
+			# TODO we need to investigate the underlying cause of this...
+			my $retries = 0;
+			until ( ++$retries == 10 || ( $_[HEAP]->{'FH'} && fileno( $_[HEAP]->{'FH'} ) ) ) {
+				open $_[HEAP]->{'FH'}, '<&=', $mbox;
+				if ( DEBUG ) {
+					warn "SpreadClient: bad fh!!! retrying" if ! fileno( $_[HEAP]->{'FH'} );
+				}
 			}
+			if ( $retries == 10 ) {
+				if ( DEBUG ) {
+					warn "SpreadClient: UNABLE to create FH from mbox!";
+				}
 
-			# We're connected...
-			delete $_[HEAP]->{'DISCONNECTED'} if exists $_[HEAP]->{'DISCONNECTED'};
+				# Inform our registered listeners
+				foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+					$_[KERNEL]->post( $l, '_sp_error', $_[HEAP]->{'PRIV_NAME'}, 'CONNECT', 'BADFH', $server, $priv );
+				}
+
+				# We're not connected...
+				$_[HEAP]->{'DISCONNECTED'} = 1;
+			} else {
+				# Finally, create the wheel!
+				$_[HEAP]->{'WHEEL'} = POE::Wheel::ReadWrite->new(
+					'Handle'	=> $_[HEAP]->{'FH'},
+					'Driver'	=> POE::Driver::SpreadClient->new( $mbox ),
+					'Filter'	=> POE::Filter::SpreadClient->new(),
+
+					'InputEvent' => 'RW_GotPacket',
+					'ErrorEvent' => 'RW_Error'
+				);
+
+				# Inform our registered listeners
+				foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
+					$_[KERNEL]->post( $l, '_sp_connect', $priv, $priv_group );
+				}
+
+				# We're connected...
+				delete $_[HEAP]->{'DISCONNECTED'} if exists $_[HEAP]->{'DISCONNECTED'};
+			}
 		}
 	}
 
@@ -531,11 +563,18 @@ sub RW_GotPacket : State {
 }
 
 1;
+
+
 __END__
+=pod
 
 =head1 NAME
 
 POE::Component::SpreadClient - Handle Spread communications in POE
+
+=head1 VERSION
+
+  This document describes v1.000 of POE::Component::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
 
 =head1 SYNOPSIS
 
@@ -742,60 +781,157 @@ You can enable debugging mode by doing this:
 	sub POE::Component::SpreadClient::DEBUG () { 1 }
 	use POE::Component::SpreadClient;
 
-=head1 SUPPORT
+=head1 SEE ALSO
 
-You can find documentation for this module with the perldoc command.
-
-    perldoc POE::Component::SpreadClient
-
-=head2 Websites
+Please see those modules/websites for more information related to this module.
 
 =over 4
 
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/POE-Component-SpreadClient>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/POE-Component-SpreadClient>
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=POE-Component-SpreadClient>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/POE-Component-SpreadClient>
-
-=back
-
-=head2 Bugs
-
-Please report any bugs or feature requests to C<bug-poe-component-spreadclient at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=POE-Component-SpreadClient>.  I will be
-notified, and then you'll automatically be notified of progress on your bug as I make changes.
-
-=head1 SEE ALSO
+=item *
 
 L<Spread>
 
+=item *
+
 L<Spread::Message>
 
-L<POE::Component::Spread>
+=back
+
+=for :stopwords cpan testmatrix url annocpan anno bugtracker rt cpants kwalitee diff irc mailto metadata placeholders
+
+=head1 SUPPORT
+
+=head2 Perldoc
+
+You can find documentation for this module with the perldoc command.
+
+  perldoc POE::Component::SpreadClient
+
+=head2 Websites
+
+The following websites have more information about this module, and may be of help to you. As always,
+in addition to those websites please use your favorite search engine to discover more resources.
+
+=over 4
+
+=item *
+
+Search CPAN
+
+L<http://search.cpan.org/dist/POE-Component-SpreadClient>
+
+=item *
+
+RT: CPAN's Bug Tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=POE-Component-SpreadClient>
+
+=item *
+
+AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/POE-Component-SpreadClient>
+
+=item *
+
+CPAN Ratings
+
+L<http://cpanratings.perl.org/d/POE-Component-SpreadClient>
+
+=item *
+
+CPAN Forum
+
+L<http://cpanforum.com/dist/POE-Component-SpreadClient>
+
+=item *
+
+CPANTS Kwalitee
+
+L<http://cpants.perl.org/dist/overview/POE-Component-SpreadClient>
+
+=item *
+
+CPAN Testers Results
+
+L<http://cpantesters.org/distro/P/POE-Component-SpreadClient.html>
+
+=item *
+
+CPAN Testers Matrix
+
+L<http://matrix.cpantesters.org/?dist=POE-Component-SpreadClient>
+
+=back
+
+=head2 Email
+
+You can email the author of this module at C<APOCAL at cpan.org> asking for help with any problems you have.
+
+=head2 Internet Relay Chat
+
+You can get live help by using IRC ( Internet Relay Chat ). If you don't know what IRC is,
+please read this excellent guide: L<http://en.wikipedia.org/wiki/Internet_Relay_Chat>. Please
+be courteous and patient when talking to us, as we might be busy or sleeping! You can join
+those networks/channels and get help:
+
+=over 4
+
+=item *
+
+irc.perl.org
+
+You can connect to the server at 'irc.perl.org' and join this channel: #perl-help then talk to this person for help: Apocalypse.
+
+=item *
+
+irc.freenode.net
+
+You can connect to the server at 'irc.freenode.net' and join this channel: #perl then talk to this person for help: Apocal.
+
+=item *
+
+irc.efnet.org
+
+You can connect to the server at 'irc.efnet.org' and join this channel: #perl then talk to this person for help: Ap0cal.
+
+=back
+
+=head2 Bugs / Feature Requests
+
+Please report any bugs or feature requests by email to C<bug-poe-component-spreadclient at rt.cpan.org>, or through
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=POE-Component-SpreadClient>. You will be automatically notified of any
+progress on the request by the system.
+
+=head2 Source Code
+
+The code is open to the world, and available for you to hack on. Please feel free to browse it and play
+with it, or whatever. If you want to contribute patches, please send me a diff or prod me to pull
+from your repository :)
+
+L<http://github.com/apocalypse/perl-poe-spreadclient>
+
+  git clone git://github.com/apocalypse/perl-poe-spreadclient.git
 
 =head1 AUTHOR
 
-Apocalypse E<lt>apocal@cpan.orgE<gt>
+Apocalypse <APOCAL@cpan.org>
+
+=head1 ACKNOWLEDGEMENTS
 
 The base for this module was lifted from POE::Component::Spread by
 Rob Partington <perl-pcs@frottage.org>.
 
+Thanks goes to Rob Bloodgood ( RDB ) for making sure this module still works!
+
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2009 by Apocalypse
+This software is copyright (c) 2011 by Apocalypse.
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+The full text of the license can be found in the LICENSE file included with this distribution.
 
 =cut
+
