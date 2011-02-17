@@ -20,7 +20,7 @@ my %module_build_args = (
     'Apocalypse <APOCAL@cpan.org>'
   ],
   'dist_name' => 'POE-Component-SpreadClient',
-  'dist_version' => '1.001',
+  'dist_version' => '1.002',
   'license' => 'perl',
   'module_name' => 'POE::Component::SpreadClient',
   'recommends' => {},

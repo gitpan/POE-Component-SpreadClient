@@ -1,3 +1,28 @@
+==============================
+9999-99-99 99:99:99 +0000 HEAD
+==============================
+
+  commit 892ef763b4c10105d86d0c3fd8751796839934e4
+  Author: Apocalypse <perl@0ne.us>
+  Date:   Wed Feb 16 17:30:07 2011 -0700
+  
+    Fix parsing of REG_MEMB_MESS thanks RT#65795 
+
+=======================================
+2011-02-09 20:03:52 -0700 release-1.001
+=======================================
+
+  commit 989a340ef010d0b11341dba3699d0652aee169d8
+  Author: Apocalypse <perl@0ne.us>
+  Date:   Wed Feb 9 20:03:52 2011 -0700
+  
+    New CPAN release of POE-Component-SpreadClient - v1.001
+
+    Released: 2011-02-10 03:03:39 UTC
+
+    Removed an erroneous "use warnings FATAL => all;" line that somehow
+    got in the source... 
+
 ===================================
 End of changes in the last 365 days
 ===================================

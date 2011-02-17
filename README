@@ -2,7 +2,7 @@ NAME
     POE::Component::SpreadClient - Handle Spread communications in POE
 
 VERSION
-      This document describes v1.001 of POE::Component::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
+      This document describes v1.002 of POE::Component::SpreadClient - released February 16, 2011 as part of POE-Component-SpreadClient.
 
 SYNOPSIS
             POE::Component::SpreadClient->spawn( 'spread' );
@@ -29,7 +29,7 @@ DESCRIPTION
     POE::Component::SpreadClient is a POE component for talking to Spread
     servers.
 
-    This module should only be used with Spread 3.17.3 ( or compatible
+    This module should only be used with Spread 3.17.4 ( or compatible
     versions )
 
     XXX Beware: this module hasn't been tested with Spread 4! XXX
@@ -197,7 +197,7 @@ SEE ALSO
 
     *   Spread
 
-    *   Spread::Message
+    *   <http://www.spread.org>
 
 SUPPORT
   Perldoc
@@ -296,6 +296,10 @@ ACKNOWLEDGEMENTS
 
     Thanks goes to Rob Bloodgood ( RDB ) for making sure this module still
     works!
+
+    This product uses software developed by Spread Concepts LLC for use in
+    the Spread toolkit. For more information about Spread see
+    <http://www.spread.org>
 
 COPYRIGHT AND LICENSE
     This software is copyright (c) 2011 by Apocalypse.

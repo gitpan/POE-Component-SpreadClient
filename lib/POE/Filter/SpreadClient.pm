@@ -9,7 +9,7 @@
 use strict; use warnings;
 package POE::Filter::SpreadClient;
 BEGIN {
-  $POE::Filter::SpreadClient::VERSION = '1.001';
+  $POE::Filter::SpreadClient::VERSION = '1.002';
 }
 BEGIN {
   $POE::Filter::SpreadClient::AUTHORITY = 'cpan:APOCAL';
@@ -40,7 +40,7 @@ POE::Filter::SpreadClient - Implements the Spread filter for POE
 
 =head1 VERSION
 
-  This document describes v1.001 of POE::Filter::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
+  This document describes v1.002 of POE::Filter::SpreadClient - released February 16, 2011 as part of POE-Component-SpreadClient.
 
 =head1 DESCRIPTION
 

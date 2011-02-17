@@ -9,7 +9,7 @@
 use strict; use warnings;
 package POE::Driver::SpreadClient;
 BEGIN {
-  $POE::Driver::SpreadClient::VERSION = '1.001';
+  $POE::Driver::SpreadClient::VERSION = '1.002';
 }
 BEGIN {
   $POE::Driver::SpreadClient::AUTHORITY = 'cpan:APOCAL';
@@ -58,7 +58,7 @@ POE::Driver::SpreadClient - Implements the Spread driver for POE
 
 =head1 VERSION
 
-  This document describes v1.001 of POE::Driver::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
+  This document describes v1.002 of POE::Driver::SpreadClient - released February 16, 2011 as part of POE-Component-SpreadClient.
 
 =head1 DESCRIPTION
 

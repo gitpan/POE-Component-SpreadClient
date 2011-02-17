@@ -9,7 +9,7 @@
 use strict; use warnings;
 package POE::Component::SpreadClient;
 BEGIN {
-  $POE::Component::SpreadClient::VERSION = '1.001';
+  $POE::Component::SpreadClient::VERSION = '1.002';
 }
 BEGIN {
   $POE::Component::SpreadClient::AUTHORITY = 'cpan:APOCAL';
@@ -271,6 +271,9 @@ sub publish : State {
 	if ( ! defined $mess_type ) {
 		$mess_type = 0;
 	}
+	if ( ! defined $flag ) {
+		$flag = SAFE_MESS;
+	}
 
 	# Spread.pm doesn't like one-member group via arrayref...
 	if ( defined $groups ) {
@@ -290,12 +293,7 @@ sub publish : State {
 	# Send it!
 	my $rtn;
 	eval {
-		# Should we do special flags?
-		if ( defined $flag ) {
-			$rtn = Spread::multicast( $_[HEAP]->{'MBOX'}, $flag, $groups, $mess_type, $message );
-		} else {
-			$rtn = Spread::multicast( $_[HEAP]->{'MBOX'}, SAFE_MESS, $groups, $mess_type, $message );
-		}
+		$rtn = Spread::multicast( $_[HEAP]->{'MBOX'}, $flag, $groups, $mess_type, $message );
 	};
 	if ( $@ or ! defined $rtn or $rtn < 0 ) {
 		# Check for disconnect
@@ -479,6 +477,7 @@ sub RW_GotPacket : State {
 			# Disconnect now!
 			$_[KERNEL]->call( $_[SESSION], 'disconnect' );
 		} else {
+			# Logic mostly taken from http://www.spread.org/docs/spread_docs_3/docs/sp_receive.html
 			# Check the type
 			if ( $type & REGULAR_MESS ) {
 				# Do we have an endian problem?
@@ -495,7 +494,7 @@ sub RW_GotPacket : State {
 				}
 			} else {
 				# Okay, figure out the type
-				if ( $type &  TRANSITION_MESS ) {
+				if ( $type & TRANSITION_MESS ) {
 					# Transitional Message
 					foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
 						$_[KERNEL]->post( $l, '_sp_admin', $_[HEAP]->{'PRIV_NAME'}, { 'TYPE' => 'TRANSITIONAL', 'GROUP' => $sender } );
@@ -509,7 +508,12 @@ sub RW_GotPacket : State {
 					# Parse the message!
 					my ( $gid1, $gid2, $gid3, $num_memb, $member );
 					eval {
-						( $gid1, $gid2, $gid3, $num_memb, $member ) = unpack( "IIIIa*", $message );
+						# Code copied from Spread::Message v0.21, thanks!
+						#($gid[0],$gid[1],$gid[2],$numg,$who) = unpack("IIIIa*",$msg);
+						#$who =~ s/[[:cntrl:]]+/ /go; # Just to clean it up
+						#$who =~ s/\s+$/ /go;         # No space at end thanks
+						# changed from a to Z thanks RT#65795
+						( $gid1, $gid2, $gid3, $num_memb, $member ) = unpack( "IIIIZ*", $message );
 					};
 					if ( $@ ) {
 						# Inform our registered listeners
@@ -548,6 +552,7 @@ sub RW_GotPacket : State {
 							}
 						}
 					}
+				# TODO REJECT_MESS ???
 				} else {
 					# Unknown?
 					foreach my $l ( keys %{ $_[HEAP]->{'LISTEN'} } ) {
@@ -574,7 +579,7 @@ POE::Component::SpreadClient - Handle Spread communications in POE
 
 =head1 VERSION
 
-  This document describes v1.001 of POE::Component::SpreadClient - released February 09, 2011 as part of POE-Component-SpreadClient.
+  This document describes v1.002 of POE::Component::SpreadClient - released February 16, 2011 as part of POE-Component-SpreadClient.
 
 =head1 SYNOPSIS
 
@@ -602,9 +607,9 @@ POE::Component::SpreadClient - Handle Spread communications in POE
 
 POE::Component::SpreadClient is a POE component for talking to Spread servers.
 
-This module should only be used with Spread 3.17.3 ( or compatible versions )
+This module should only be used with Spread 3.17.4 ( or compatible versions )
 
-XXX Beware: this module hasn't been tested with Spread 4! XXX
+B<XXX Beware: this module hasn't been tested with Spread 4! XXX>
 
 =head1 METHODS
 
@@ -793,7 +798,7 @@ L<Spread>
 
 =item *
 
-L<Spread::Message>
+L<http://www.spread.org>
 
 =back
 
@@ -923,6 +928,9 @@ The base for this module was lifted from POE::Component::Spread by
 Rob Partington <perl-pcs@frottage.org>.
 
 Thanks goes to Rob Bloodgood ( RDB ) for making sure this module still works!
+
+This product uses software developed by Spread Concepts LLC for use in the Spread toolkit.
+For more information about Spread see L<http://www.spread.org>
 
 =head1 COPYRIGHT AND LICENSE
 
