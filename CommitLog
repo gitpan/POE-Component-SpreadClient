@@ -1,28 +1,59 @@
-==============================
-9999-99-99 99:99:99 +0000 HEAD
-==============================
+==================================================
+Changes from 2013-11-10 00:00:00 +0000 to present.
+==================================================
 
-  commit 892ef763b4c10105d86d0c3fd8751796839934e4
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Wed Feb 16 17:30:07 2011 -0700
-  
-    Fix parsing of REG_MEMB_MESS thanks RT#65795 
+------------------------------------------
+version 1.003 at 2014-11-10 20:21:12 +0000
+------------------------------------------
 
-=======================================
-2011-02-09 20:03:52 -0700 release-1.001
-=======================================
+  Change: d0ea32d6cf36a1d839ec76e9de443b1dc9ba84c8
+  Author: Apocalypse <APOCAL@cpan.org>
+  Date : 2014-11-10 12:21:06 +0000
 
-  commit 989a340ef010d0b11341dba3699d0652aee169d8
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Wed Feb 9 20:03:52 2011 -0700
-  
-    New CPAN release of POE-Component-SpreadClient - v1.001
+    fix the spread version for RT#66904 
 
-    Released: 2011-02-10 03:03:39 UTC
+  Change: 0d14e3e72479b048dd8e6ba933ee34a9b710191f
+  Author: Apocalypse <APOCAL@cpan.org>
+  Date : 2014-11-10 12:15:51 +0000
 
-    Removed an erroneous "use warnings FATAL => all;" line that somehow
-    got in the source... 
+    fix comment about installation 
 
-===================================
-End of changes in the last 365 days
-===================================
+  Change: 4e690643e4490ddcf4c9e6ccd664efa983f003ed
+  Author: Apocalypse <APOCAL@cpan.org>
+  Date : 2014-11-10 12:15:18 +0000
+
+    bump Spread prereq 
+
+  Change: 571ae0e397392e86d87abe82abffea477b02f160
+  Author: Apocalypse <APOCAL@cpan.org>
+  Date : 2014-11-10 12:10:46 +0000
+
+    fix the example client 
+
+  Change: 5c33b3f0cd081492c6c5d869d257a32e68a96c00
+  Author: Apocalypse <APOCAL@cpan.org>
+  Date : 2014-11-10 12:01:47 +0000
+
+    tweaks to pass tests 
+
+  Change: e9e4b74b7c4772d53d0a285acd6a7963432de61b
+  Author: Apocalypse <APOCAL@cpan.org>
+  Date : 2014-11-10 11:16:34 +0000
+
+    fix changes 
+
+  Change: 76b133abb6c97fec52627b96dfbb077200fe46a5
+  Author: Apocalypse <APOCAL@cpan.org>
+  Date : 2014-11-10 10:55:32 +0000
+
+    add installation notes 
+
+  Change: 8dcc4021b759b564f139b9a1b71dfbf99d27677c
+  Author: Apocalypse <APOCAL@cpan.org>
+  Date : 2014-11-09 01:19:19 +0000
+
+    mailmap 
+
+================================================
+Plus 3 releases after 2013-11-10 00:00:00 +0000.
+================================================
